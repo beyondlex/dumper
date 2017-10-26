@@ -10,7 +10,41 @@ import pymysql
 
 pymysql.install_as_MySQLdb()
 
-def getClearSql(dbIndex=None):
+
+def getExtraSql(start, end):
+    dbIndex = None
+    if start == end:
+        dbIndex = start
+
+    dbs = getDbs(dbIndex)
+
+    sqls = ''
+
+    for d in dbs:
+        print d
+        companyId = str(d[1])
+        index = str(d[3])
+        dbName = "curato" + index
+        if not Tool.dbExist(dbName):
+            continue
+        tblName = dbName + '.' + companyId + '_report_read_info'
+
+        sql = '''
+        ALTER TABLE %s
+        MODIFY COLUMN `id`  int(11) NOT NULL AUTO_INCREMENT FIRST ;
+        '''
+        sql = sql % tblName
+
+        sqls += sql
+
+    return sqls
+
+
+def getClearSql(start, end):
+    dbIndex = None
+    if start == end:
+        dbIndex = start
+
     dbs = getDbs(dbIndex)
 
     sqls = ''
@@ -51,6 +85,7 @@ def getDbs(dbIndex=None):
     cursor.execute(sql)
     data = cursor.fetchall()
     return data
+
 
 def getCreateSql(dbName, sn):
     sn = str(sn)
@@ -351,9 +386,15 @@ def getModifySql(dbName, sn):
     return sql
 
 
-def getAuthSql(dbIndex):
+def getAuthSql(start, end):
+    dbIndex = None
+    if start == end:
+        dbIndex = start
 
     data = getDbs(dbIndex)
+
+    db = connection
+    cursor = db.cursor()
 
     sqlss = ''
 
@@ -384,7 +425,6 @@ def getAuthSql(dbIndex):
         createTbl = createTbl % (tblName, tblName)
 
         sqls += createTbl
-
 
         oldTbl = companyId + "_user_role_auth"
 
@@ -428,7 +468,7 @@ def getAuthSql(dbIndex):
 def convertAuth(authStr):
     authOld = authStr.split(',')
     map = [
-        [[9,12,13,14], [9]],
+        [[9, 12, 13, 14], [9]],
         [[10, 16, 17, 18], [10]],
         [[19], [25]],
         [[24], [13]],
@@ -447,6 +487,7 @@ def convertAuth(authStr):
     authNew = cx(map, authOld)
     return authNew
 
+
 def cx(map, old):
     new = []
     for item in map:
@@ -457,6 +498,7 @@ def cx(map, old):
 
     return list(set(new))
 
+
 def isIn(list1, list2):
     i = False
     for item in list1:
@@ -465,64 +507,33 @@ def isIn(list1, list2):
             break
     return i
 
-def dump(dir):
+
+def dump(fl, start=None, end=None):
+    t1 = time.time()
     db = connection
     cursor = db.cursor()
     # cursor.execute("select * from t_database where dbname < 3 ")
     cursor.execute("use curato_base")
-    cursor.execute("select * from t_database")
-    data = cursor.fetchall()
 
-    log_file = dir + '../gen.log'
-    h = open(log_file, 'w')
-
-    for d in data:
-        sql = ""
-        t1 = time.time()
-        sn = str(d[1])  # companyId
-        dbName = "curato" + d[3]  # db index
-        if not Tool.dbExist(dbName):
-            continue
-        s = ""
-        create_sql = getCreateSql(dbName, sn)
-        print 'create_sql..' + dbName + '-' + sn
-        modify_sql = getModifySql(dbName, sn)
-        print 'modify_sql..' + dbName + '-' + sn
-        s += create_sql
-        s += modify_sql
-
-        sql += s
-
-        f = dir + dbName + '-' + sn
-        fo = open(f, "w")
-        fo.write(sql)
-        fo.close()
-        t2 = time.time()
-
-        t = t2 - t1
-        print "Generating %s Cost Time %s" % (dbName + '-' + sn, t)
-
-        h.write("Generating %s Cost Time %s" % (dbName + '-' + sn, t))
-
-def dump2(dir, start=None, end=None, dbIndex=None):
-    db = connection
-    cursor = db.cursor()
-    # cursor.execute("select * from t_database where dbname < 3 ")
-    cursor.execute("use curato_base")
+    dbIndex = None
+    if start == end:
+        dbIndex = start
 
     if dbIndex:
-        s = "select * from t_database where dbname = '"+dbIndex+"' "
+        s = "select * from t_database where dbname = '" + dbIndex + "' "
     elif (start and end):
         s = "select * from t_database where dbname >= %s and dbname <= %s " % (start, end)
     else:
-        os._exit()
+        all = raw_input('Dump all ? (y/N) ')
+        if all != 'y':
+            os._exit(1)
         s = "select * from t_database"
 
     cursor.execute(s)
     data = cursor.fetchall()
 
-    log_file = dir + '../gen.log'
-    h = open(log_file, 'w')
+    # log_file = dir + 'update.log'
+    # h = open(log_file, 'w')
 
     sqls = ""
 
@@ -547,12 +558,25 @@ def dump2(dir, start=None, end=None, dbIndex=None):
         t = t2 - t1
         print "Generating %s Cost Time %s" % (dbName + '-' + sn, t)
 
-        h.write("Generating %s Cost Time %s" % (dbName + '-' + sn, t))
+        # h.write("Generating %s Cost Time %s" % (dbName + '-' + sn, t))
 
-    f = "/home/phper/deploy-test/generator/dump_all"
+    f = fl
     fo = open(f, "w")
     fo.write(sqls)
     fo.close()
+
+    t2 = time.time()
+    print "Generating Cost Time %s" % (t2 - t1)
+
+
+def readInput(ipt):
+    if ',' in ipt:
+        rets = []
+        elems = ipt.split(',')
+        for e in elems:
+            rets.append(e.strip())
+        return rets
+    return ipt.strip()
 
 
 if __name__ == '__main__':
@@ -561,98 +585,293 @@ if __name__ == '__main__':
     user = config['MYSQL_USER']
     pwd = config['MYSQL_PWD']
 
-    # dbIndex = raw_input('Input database index:')
+    update_file = "/home/phper/deploy-test/generator/update"
+    auth_file = '/home/phper/deploy-test/generator/auth'
+    clear_file = '/home/phper/deploy-test/generator/clear'
+    extra_file = '/home/phper/deploy-test/generator/extra'
 
-    # if dbIndex == 0:
-    dbIndex = None
-    start = '0'
-    end = '0'
-    t = raw_input('Input type:')
-    if t == '1':
-        dbIndex = raw_input('Input db index:')
+    dump_dir = '/home/phper/deploy-test/dumps/'
+    dump_log = '/home/phper/deploy-test/dumps.log'
+    dumper = '/home/phper/mydumper-0.9.1/mydumper'
+    load_log = '/home/phper/deploy-test/load.log'
+    loader = '/home/phper/mydumper-0.9.1/myloader'
+
+    lv1 = '''
+    1) init dbs  ...
+    2) dump and load ...
+    3) update ...
+    4) auth ...
+    5) clear ...
+    6) schema ...
+    7) extra ...
+    '''
+    print lv1
+    ipt = raw_input("Pick one:")
+    if ipt == '1':  # init dbs
+        print 'Unsupported.'
+    elif ipt == '2':  # dump and load
+        lv2 = '''
+        1) dump dbs to local ...
+        2) load from local
+        '''
+        print lv2
+        ipt = raw_input("Enter your choice:")
+
+        if ipt == '1':  # dump
+            print 'Dumping dbs ..'
+            fo = open(dump_log, "w")
+            start = raw_input("Db index from:")
+            end = raw_input("Db index to:")
+            t1 = time.time()
+            if start == end:
+                db_name = 'curato' + start
+                cmd = dumper + " -h " + host + " -u " + user + " -p '" + pwd + "' -B " + db_name + " -o " + dump_dir + db_name + "/"
+                backup = os.system(cmd)
+            else:
+                for i in range(int(start), int(end)):
+                    db_name = 'curato' + str(i)
+                    cmd = dumper + " -h " + host + " -u " + user + " -p '" + pwd + "' -B " + db_name + " -o " + dump_dir + db_name + "/"
+                    backup = os.system(cmd)
+                    t2 = time.time()
+                    t = round(t2 - t1)
+                    print cmd
+                    print "%s Cost Time %s" % (db_name, t)
+
+                    fo.write("%s : %d seconds\n" % (db_name, t))
+
+            print "Total Cost Time %s" % (time.time() - t1)
+
+        elif ipt == '2':  # load
+            print 'Loading dbs from local dirs ..'
+            fo = open(load_log, "w")
+            start = raw_input("Db index from:")
+            end = raw_input("Db index to:")
+            t1 = time.time()
+            if start == end:
+                db_name = 'curato' + start
+                cmd = loader + " -h '" + host + "' -u '" + user + "' -p '" + pwd + "' -B " + db_name + " -d " + dump_dir + db_name + "/"
+                backup = os.system(cmd)
+            else:
+                for i in range(int(start), int(end)):
+                    db_name = 'curato' + str(i)
+                    cmd = loader + " -h '" + host + "' -u '" + user + "' -p '" + pwd + "' -B " + db_name + " -d " + dump_dir + db_name + "/"
+                    backup = os.system(cmd)
+                    t2 = time.time()
+                    t = round(t2 - t1)
+                    print cmd
+                    print "%s Cost Time %s" % (db_name, t)
+                    fo.write("%s : %d seconds\n" % (db_name, t))
+
+            print "Total Cost Time %s" % (time.time() - t1)
+
+        else:
+            print 'Unknown command.'
+
+    elif ipt == '3':  # update
+        lv2 = '''
+        1) update.sql generate ...
+        2) update.sql load
+        '''
+        print lv2
+        ipt = raw_input("Enter your choice:")
+        if ipt == '1':  # update generate
+            start = raw_input("Db index from:")
+            end = raw_input("Db index to:")
+            print 'Generating update ..'
+
+            dump(update_file, start, end)
+
+            print 'Generating update done.'
+
+        elif ipt == '2':  # update load
+            print 'Loading update ..'
+            cmd = "mysql -h'" + host + "' -u'" + user + "' -p'" + pwd + "' -f mysql < " + update_file
+            t1 = time.time()
+            os.popen(cmd)
+            t2 = time.time()
+            t = t2 - t1
+            print "source from dump cost %s " % t
+        else:
+            print 'Unknown command.'
+    elif ipt == '4':  # auth
+        lv2 = '''
+        1) auth.sql generate ...
+        2) auth.sql load
+        '''
+        print lv2
+        ipt = raw_input("Enter your choice:")
+        if ipt == '1':  # auth generate
+            start = raw_input("Db index from:")
+            end = raw_input("Db index to:")
+            print 'Generating auth ..'
+            f = open(auth_file, 'w')
+            t1 = time.time()
+            f.write(getAuthSql(start, end))
+            f.close()
+            t2 = time.time()
+            print "Generating authSql Cost Time %s" % (t2 - t1)
+        elif ipt == '2':  # auth load
+            print 'Loading auth ..'
+            cmd = "mysql -h'" + host + "' -u'" + user + "' -p'" + pwd + "' -f mysql < " + auth_file
+            t1 = time.time()
+            os.popen(cmd)
+            t2 = time.time()
+            t = t2 - t1
+            print "source from auth cost %s " % t
+        else:
+            print 'Unknown command.'
+    elif ipt == '5':  # clear
+        lv2 = '''
+        1) clear.sql generate ...
+        2) clear.sql load
+        '''
+        print lv2
+        ipt = raw_input("Enter your choice:")
+        if ipt == '1':  # clear generate
+            start = raw_input("Db index from:")
+            end = raw_input("Db index to:")
+            print 'Generating clear ..'
+            f = open(clear_file, 'w')
+            t1 = time.time()
+            f.write(getClearSql(start, end))
+            f.close()
+            t2 = time.time()
+            print "Generating clearSql Cost Time %s" % (t2 - t1)
+        elif ipt == '2':  # update load
+            print 'Loading clear ..'
+            cmd = "mysql -h'" + host + "' -u'" + user + "' -p'" + pwd + "' -f mysql < " + clear_file
+            t1 = time.time()
+            os.popen(cmd)
+            t2 = time.time()
+            t = t2 - t1
+            print "source from clear cost %s " % t
+        else:
+            print 'Unknown command.'
+    elif ipt == '6':  # schema
+        lv2 = '''
+        
+        '''
+        print 'Unsupported yet.'
+    elif ipt == '7':  # extra
+        start = raw_input("Db index from:")
+        end = raw_input("Db index to:")
+        print 'Generating extra ..'
+        f = open(extra_file, 'w')
+        t1 = time.time()
+        f.write(getExtraSql(start, end))
+        f.close()
+        t2 = time.time()
+        print "Generating extraSql Cost Time %s" % (t2 - t1)
+
+        print 'Loading extra ..'
+        cmd = "mysql -h'" + host + "' -u'" + user + "' -p'" + pwd + "' -f mysql < " + extra_file
+        t1 = time.time()
+        os.popen(cmd)
+        t2 = time.time()
+        t = t2 - t1
+        print "source from extra cost %s " % t
     else:
-        start = raw_input('Input database index start:')
-        end = raw_input('Input database index end:')
+        print 'Unknown command.'
 
+    os._exit(1)
+    #
+    # host = config['MYSQL_HOST']
+    # user = config['MYSQL_USER']
+    # pwd = config['MYSQL_PWD']
+    #
+    # # dbIndex = raw_input('Input database index:')
+    #
+    # # if dbIndex == 0:
+    # dbIndex = None
+    # start = '0'
+    # end = '0'
+    # t = raw_input('Input type:')
+    # if t == '1':
+    #     dbIndex = raw_input('Input db index:')
+    # else:
+    #     start = raw_input('Input database index start:')
+    #     end = raw_input('Input database index end:')
+    #
+    # # dumper: 1 hour
+    # # loader: 1 hour
+    # # generate: 1 hour
+    # # source: 1 hour
+    # # auth: dump 63, load 104
+    #
+    #
+    # # 21-30 db testing: generate 74, source 94
+    # # 31-40 db testing: generate 132, source 87
+    # # 41-60 db testing: generate 231, source 189
+    # # 61-69 db testing: generate 82, source 75
+    # # 70 db testing: generate 75, source 59
+    # # 71-79 db testing: generate 283, source 286
+    #
+    #
+    #
+    # # 1.dump modify and create sqls:
+    # dumpall = 0
+    # loadall = 0
+    # dumpauth = 0
+    # loadauth = 0
+    # dumpclear = 1
+    # loadclear = 0
+    #
+    # # 1340s
+    # if dumpall:
+    #     dir = "/home/phper/deploy-test/generator/sqls/"
+    #     # dir = "/home/lex/deploy-test/generator/sqls/"
+    #     # f = "/home/lex/220.sql"
+    #     t1 = time.time()
+    #     # dump2(dir, start, end, dbIndex)
+    #     t2 = time.time()
+    #     t = t2 - t1
+    #     print "Generating Cost Time %s" % t
+    #
+    # # 2.source from sqls:
+    # if loadall:
+    #     sqlPath = "/home/phper/deploy-test/generator/dump_all"
+    #     cmd = "mysql -h'" + host + "' -u'" + user + "' -p'" + pwd + "' -f mysql < " + sqlPath
+    #     t1 = time.time()
+    #     os.popen(cmd)
+    #     t2 = time.time()
+    #     t = t2 - t1
+    #     print "source from dump cost %s " % t
+    #
+    # # 3.dump auth sql:
+    # authFile = '/home/phper/deploy-test/generator/auth'
+    # if dumpauth:
+    #     f = open(authFile, 'w')
+    #     t1 = time.time()
+    #     f.write(getAuthSql(dbIndex))
+    #     f.close()
+    #     t2 = time.time()
+    #     print "Generating authSql Cost Time %s" % (t2 - t1)
+    #
+    # # 4.source auth sql:
+    # if loadauth:
+    #     cmd = "mysql -h'" + host + "' -u'" + user + "' -p'" + pwd + "' -f mysql < " + authFile
+    #     t1 = time.time()
+    #     os.popen(cmd)
+    #     t2 = time.time()
+    #     t = t2 - t1
+    #     print "source from auth cost %s " % t
+    #
+    # clearFile = '/home/phper/deploy-test/generator/clear'
+    # if dumpclear:
+    #     f = open(clearFile, 'w')
+    #     t1 = time.time()
+    #     f.write(getClearSql(dbIndex))
+    #     f.close()
+    #     t2 = time.time()
+    #     print "Generating clearSql Cost Time %s" % (t2 - t1)
+    #
+    # if loadclear:
+    #     cmd = "mysql -h'" + host + "' -u'" + user + "' -p'" + pwd + "' -f mysql < " + clearFile
+    #     t1 = time.time()
+    #     os.popen(cmd)
+    #     t2 = time.time()
+    #     t = t2 - t1
+    #     print "source from clear cost %s " % t
 
-    #dumper: 1 hour
-    #loader: 1 hour
-    #generate: 1 hour
-    #source: 1 hour
-    #auth: dump 63, load 104
-
-
-    # 21-30 db testing: generate 74, source 94
-    # 31-40 db testing: generate 132, source 87
-    # 41-60 db testing: generate 231, source 189
-    # 61-69 db testing: generate 82, source 75
-    # 70 db testing: generate 75, source 59
-    # 71-79 db testing: generate 283, source 286
-
-
-
-    # 1.dump modify and create sqls:
-    dumpall = 0
-    loadall = 0
-    dumpauth = 0
-    loadauth = 0
-    dumpclear = 1
-    loadclear = 0
-
-
-    # 1340s
-    if dumpall:
-        dir = "/home/phper/deploy-test/generator/sqls/"
-        # dir = "/home/lex/deploy-test/generator/sqls/"
-        # f = "/home/lex/220.sql"
-        t1 = time.time()
-        dump2(dir, start, end, dbIndex)
-        t2 = time.time()
-        t = t2 - t1
-        print "Generating Cost Time %s" % t
-
-    # 2.source from sqls:
-    if loadall:
-        sqlPath = "/home/phper/deploy-test/generator/dump_all"
-        cmd = "mysql -h'" + host + "' -u'" + user + "' -p'" + pwd + "' -f mysql < " + sqlPath
-        t1 = time.time()
-        os.popen(cmd)
-        t2 = time.time()
-        t = t2 - t1
-        print "source from dump cost %s " % t
-
-    # 3.dump auth sql:
-    authFile = '/home/phper/deploy-test/generator/auth'
-    if dumpauth:
-        f = open(authFile, 'w')
-        t1 = time.time()
-        f.write(getAuthSql(dbIndex))
-        f.close()
-        t2 = time.time()
-        print "Generating authSql Cost Time %s" % (t2 - t1)
-
-    # 4.source auth sql:
-    if loadauth:
-        cmd = "mysql -h'" + host + "' -u'" + user + "' -p'" + pwd + "' -f mysql < " + authFile
-        t1 = time.time()
-        os.popen(cmd)
-        t2 = time.time()
-        t = t2 - t1
-        print "source from auth cost %s " % t
-
-    clearFile = '/home/phper/deploy-test/generator/clear'
-    if dumpclear:
-        f = open(clearFile, 'w')
-        t1 = time.time()
-        f.write(getClearSql(dbIndex))
-        f.close()
-        t2 = time.time()
-        print "Generating clearSql Cost Time %s" % (t2 - t1)
-
-    if loadclear:
-        cmd = "mysql -h'" + host + "' -u'" + user + "' -p'" + pwd + "' -f mysql < " + clearFile
-        t1 = time.time()
-        os.popen(cmd)
-        t2 = time.time()
-        t = t2 - t1
-        print "source from clear cost %s " % t
+        # mysql -h host -u user -p -f db_name < sql_file
+        # -f导入数据时忽略错误：上一条sql语句执行错误不影响后续语句执行
