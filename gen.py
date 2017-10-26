@@ -10,6 +10,47 @@ import pymysql
 
 pymysql.install_as_MySQLdb()
 
+def getClearSql(dbIndex=None):
+    dbs = getDbs(dbIndex)
+
+    sqls = ''
+
+    for d in dbs:
+        print d
+        companyId = str(d[1])
+        index = str(d[3])
+        dbName = "curato" + index
+        if not Tool.dbExist(dbName):
+            continue
+        tblName = dbName + '.' + companyId + '_apply_config'
+
+        sql = '''
+        DELETE FROM %s;
+        INSERT INTO %s (type,company,apply_name,process_type,status,create_time) VALUES
+        (1,1, '请假申请',1, 1,NOW()),
+        (2,1, '加班申请',1, 1,NOW()),
+        (3,1, '外勤申请',1, 1,NOW()),
+        (4,1, '补签申请',1, 1,NOW()),
+        (5,1, '通用申请',1, 1,NOW());
+        '''
+        sql = sql % (tblName, tblName)
+
+        sqls += sql
+
+    return sqls
+
+
+def getDbs(dbIndex=None):
+    if dbIndex:
+        sql = "select * from t_database where dbname='%s'" % dbIndex
+    else:
+        sql = "select * from t_database"
+    db = connection
+    cursor = db.cursor()
+    cursor.execute("use curato_base")
+    cursor.execute(sql)
+    data = cursor.fetchall()
+    return data
 
 def getCreateSql(dbName, sn):
     sn = str(sn)
@@ -310,12 +351,9 @@ def getModifySql(dbName, sn):
     return sql
 
 
-def getAuthSql():
-    db = connection
-    cursor = db.cursor()
-    cursor.execute("use curato_base")
-    cursor.execute("select * from t_database")
-    data = cursor.fetchall()
+def getAuthSql(dbIndex):
+
+    data = getDbs(dbIndex)
 
     sqlss = ''
 
@@ -427,8 +465,6 @@ def isIn(list1, list2):
             break
     return i
 
-
-
 def dump(dir):
     db = connection
     cursor = db.cursor()
@@ -473,7 +509,6 @@ def dump2(dir, start=None, end=None, dbIndex=None):
     cursor = db.cursor()
     # cursor.execute("select * from t_database where dbname < 3 ")
     cursor.execute("use curato_base")
-
 
     if dbIndex:
         s = "select * from t_database where dbname = '"+dbIndex+"' "
@@ -557,10 +592,12 @@ if __name__ == '__main__':
 
 
     # 1.dump modify and create sqls:
-    dumpall = 1
+    dumpall = 0
     loadall = 0
     dumpauth = 0
     loadauth = 0
+    dumpclear = 1
+    loadclear = 0
 
 
     # 1340s
@@ -589,7 +626,7 @@ if __name__ == '__main__':
     if dumpauth:
         f = open(authFile, 'w')
         t1 = time.time()
-        f.write(getAuthSql())
+        f.write(getAuthSql(dbIndex))
         f.close()
         t2 = time.time()
         print "Generating authSql Cost Time %s" % (t2 - t1)
@@ -603,6 +640,19 @@ if __name__ == '__main__':
         t = t2 - t1
         print "source from auth cost %s " % t
 
+    clearFile = '/home/phper/deploy-test/generator/clear'
+    if dumpclear:
+        f = open(clearFile, 'w')
+        t1 = time.time()
+        f.write(getClearSql(dbIndex))
+        f.close()
+        t2 = time.time()
+        print "Generating clearSql Cost Time %s" % (t2 - t1)
 
-
-
+    if loadclear:
+        cmd = "mysql -h'" + host + "' -u'" + user + "' -p'" + pwd + "' -f mysql < " + clearFile
+        t1 = time.time()
+        os.popen(cmd)
+        t2 = time.time()
+        t = t2 - t1
+        print "source from clear cost %s " % t
