@@ -309,7 +309,7 @@ def getModifySql(dbName, sn):
         ('hour_count', "ADD COLUMN `hour_count`  int NULL DEFAULT NULL COMMENT '小时数' AFTER `day_count`"),
         ('process_type',
          "ADD COLUMN `process_type`  tinyint(1) NULL DEFAULT 1 COMMENT '审批流程列表。1员工审批2智能审批（职位）' AFTER `approver`"),
-        ('hand_sign', "ADD COLUMN `hand_sign`  tinyint(1) NULL COMMENT '是否开启手签1是0否' AFTER `gps_location`,"),
+        ('hand_sign', "ADD COLUMN `hand_sign`  tinyint(1) NULL COMMENT '是否开启手签1是0否' AFTER `gps_location`"),
         (
             'overtime_type',
             "ADD COLUMN `overtime_type`  tinyint(1) NULL DEFAULT 0 COMMENT '加班类型，是否法定假日' AFTER `e_time`"),
@@ -621,15 +621,7 @@ def op_load(s, e):
 
 
 def op_update_load():
-    print 'Loading update ..'
-    cmd = "mysql -h'" + host + "' -u'" + user + "' -p'" + pwd + "' -f mysql < " + update_file
-    t1 = time.time()
-    if not just_print:
-        os.popen(cmd)
-    t2 = time.time()
-    t = t2 - t1
-    print "source from dump cost %s " % t
-    return 1
+    load_to_db_from(update_file, 'update')
 
 
 def op_auth_dump(s, e):

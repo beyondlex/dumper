@@ -12,6 +12,7 @@ class Conn:
         conn = pymysql.connect(config['MYSQL_HOST'], config['MYSQL_USER'], config['MYSQL_PWD'], database)
         print 'conn..'
         sql = '''
+        use curato_base;
         DROP PROCEDURE  IF EXISTS table_exist;
         CREATE  PROCEDURE `table_exist`(IN `dbname` varchar(20),IN `tblname` varchar(50), OUT `exist` tinyint)
         BEGIN
