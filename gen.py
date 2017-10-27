@@ -508,7 +508,8 @@ def isIn(list1, list2):
     return i
 
 
-def dump(fl, start=None, end=None):
+def op_update_dump(start=None, end=None):
+    print 'Generating update ..'
     t1 = time.time()
     db = connection
     cursor = db.cursor()
@@ -560,13 +561,16 @@ def dump(fl, start=None, end=None):
 
         # h.write("Generating %s Cost Time %s" % (dbName + '-' + sn, t))
 
-    f = fl
+    f = update_file
     fo = open(f, "w")
     fo.write(sqls)
     fo.close()
 
     t2 = time.time()
     print "Generating Cost Time %s" % (t2 - t1)
+
+    print 'Generating update done.'
+    return 1
 
 
 def readInput(ipt):
@@ -579,22 +583,193 @@ def readInput(ipt):
     return ipt.strip()
 
 
+def op_dump(s, e):
+    print 'Dumping dbs ..'
+    fo = open(dump_log, "w")
+    t1 = time.time()
+    if s == e:
+        db_name = 'curato' + s
+        cmd = dumper + " -h " + host_from + " -u " + user_from + " -p '" + pwd_from + "' -B " + db_name + " -o " + dump_dir + db_name + "/"
+        backup = os.system(cmd)
+    else:
+        for i in range(int(s), int(e)):
+            db_name = 'curato' + str(i)
+            cmd = dumper + " -h " + host_from + " -u " + user_from + " -p '" + pwd_from + "' -B " + db_name + " -o " + dump_dir + db_name + "/"
+            backup = os.system(cmd)
+            t2 = time.time()
+            t = round(t2 - t1)
+            print cmd
+            print "%s Cost Time %s" % (db_name, t)
+
+            fo.write("%s : %d seconds\n" % (db_name, t))
+
+    print "Total Cost Time %s" % (time.time() - t1)
+    return 1
+
+
+def op_load(s, e):
+    print 'Loading dbs from local dirs ..'
+    fo = open(load_log, "w")
+    t1 = time.time()
+    if s == e:
+        db_name = 'curato' + s
+        cmd = loader + " -h '" + host + "' -u '" + user + "' -p '" + pwd + "' -B " + db_name + " -d " + dump_dir + db_name + "/"
+        backup = os.system(cmd)
+    else:
+        for i in range(int(s), int(e)):
+            db_name = 'curato' + str(i)
+            cmd = loader + " -h '" + host + "' -u '" + user + "' -p '" + pwd + "' -B " + db_name + " -d " + dump_dir + db_name + "/"
+            backup = os.system(cmd)
+            t2 = time.time()
+            t = round(t2 - t1)
+            print cmd
+            print "%s Cost Time %s" % (db_name, t)
+            fo.write("%s : %d seconds\n" % (db_name, t))
+
+    print "Total Cost Time %s" % (time.time() - t1)
+    return 1
+
+
+def op_update_load():
+    print 'Loading update ..'
+    cmd = "mysql -h'" + host + "' -u'" + user + "' -p'" + pwd + "' -f mysql < " + update_file
+    t1 = time.time()
+    os.popen(cmd)
+    t2 = time.time()
+    t = t2 - t1
+    print "source from dump cost %s " % t
+    return 1
+
+
+def op_auth_dump(s, e):
+    print 'Generating auth ..'
+    f = open(auth_file, 'w')
+    t1 = time.time()
+    f.write(getAuthSql(s, e))
+    f.close()
+    t2 = time.time()
+    print "Generating authSql Cost Time %s" % (t2 - t1)
+    return 1
+
+
+def op_auth_load():
+    print 'Loading auth ..'
+    cmd = "mysql -h'" + host + "' -u'" + user + "' -p'" + pwd + "' -f mysql < " + auth_file
+    t1 = time.time()
+    os.popen(cmd)
+    t2 = time.time()
+    t = t2 - t1
+    print "source from auth cost %s " % t
+
+
+def op_clear_dump(s, e):
+    print 'Generating clear ..'
+    f = open(clear_file, 'w')
+    t1 = time.time()
+    f.write(getClearSql(s, e))
+    f.close()
+    t2 = time.time()
+    print "Generating clearSql Cost Time %s" % (t2 - t1)
+
+
+def op_clear_load():
+    print 'Loading clear ..'
+    cmd = "mysql -h'" + host + "' -u'" + user + "' -p'" + pwd + "' -f mysql < " + clear_file
+    t1 = time.time()
+    os.popen(cmd)
+    t2 = time.time()
+    t = t2 - t1
+    print "source from clear cost %s " % t
+
+
+def op_extra(s, e):
+    print 'Generating extra ..'
+    f = open(extra_file, 'w')
+    t1 = time.time()
+    f.write(getExtraSql(s, e))
+    f.close()
+    t2 = time.time()
+    print "Generating extraSql Cost Time %s" % (t2 - t1)
+
+    print 'Loading extra ..'
+    cmd = "mysql -h'" + host + "' -u'" + user + "' -p'" + pwd + "' -f mysql < " + extra_file
+    t1 = time.time()
+    os.popen(cmd)
+    t2 = time.time()
+    t = t2 - t1
+    print "source from extra cost %s " % t
+
+
 if __name__ == '__main__':
 
     host = config['MYSQL_HOST']
     user = config['MYSQL_USER']
     pwd = config['MYSQL_PWD']
 
-    update_file = "/home/phper/deploy-test/generator/update"
-    auth_file = '/home/phper/deploy-test/generator/auth'
-    clear_file = '/home/phper/deploy-test/generator/clear'
-    extra_file = '/home/phper/deploy-test/generator/extra'
+    host_from = config['RDS_HOST']
+    user_from = config['RDS_USER']
+    pwd_from = config['RDS_PWD']
 
-    dump_dir = '/home/phper/deploy-test/dumps/'
-    dump_log = '/home/phper/deploy-test/dumps.log'
-    dumper = '/home/phper/mydumper-0.9.1/mydumper'
-    load_log = '/home/phper/deploy-test/load.log'
-    loader = '/home/phper/mydumper-0.9.1/myloader'
+    update_file = config['UPDATE_FILE']
+    auth_file = config['AUTH_FILE']
+    clear_file = config['CLEAR_FILE']
+    extra_file = config['EXTRA_FILE']
+
+    dump_dir = config['DUMP_DIR']
+    dump_log = config['DUMP_LOG']
+    dumper = config['DUMPER']
+
+    load_log = config['LOAD_LOG']
+    loader = config['LOADER']
+
+    entry = '''
+    1)Manual
+    2)Automatic
+    '''
+    print entry
+    mode = raw_input('Select mode: ')
+    if mode == '1':
+        print 'Manual operation start ..'
+        pass
+    elif mode == '2':
+        print time.strftime("%Y-%m-%d %H:%M:%S", time.localtime())
+        print 'Automatic process start ..'
+
+        start = 1
+        end = 2
+
+        ta = time.time()
+
+        # 1.dump
+        op_dump(start, end)
+        # 2.load
+        op_load(start, end)
+        # 3.update dump
+        op_update_dump(start, end)
+        # 4.update load
+        op_update_load()
+        # 5.auth dump
+        op_auth_dump(start, end)
+        # 6.auth load
+        op_auth_load()
+        # 7.clear dump
+        op_clear_dump(start, end)
+        # 8.clear load
+        op_clear_load()
+        # 9.extra
+        op_extra(start, end)
+
+        tb = time.time()
+
+        print 'Automatic process end.'
+        print time.strftime("%Y-%m-%d %H:%M:%S", time.localtime())
+        print "Total Time Cost %s seconds. " % (tb - ta)
+
+        os._exit(1)
+    else:
+        print 'Unknown command.'
+
+        os._exit(1)
 
     lv1 = '''
     1) init dbs  ...
@@ -618,51 +793,14 @@ if __name__ == '__main__':
         ipt = raw_input("Enter your choice:")
 
         if ipt == '1':  # dump
-            print 'Dumping dbs ..'
-            fo = open(dump_log, "w")
             start = raw_input("Db index from:")
             end = raw_input("Db index to:")
-            t1 = time.time()
-            if start == end:
-                db_name = 'curato' + start
-                cmd = dumper + " -h " + host + " -u " + user + " -p '" + pwd + "' -B " + db_name + " -o " + dump_dir + db_name + "/"
-                backup = os.system(cmd)
-            else:
-                for i in range(int(start), int(end)):
-                    db_name = 'curato' + str(i)
-                    cmd = dumper + " -h " + host + " -u " + user + " -p '" + pwd + "' -B " + db_name + " -o " + dump_dir + db_name + "/"
-                    backup = os.system(cmd)
-                    t2 = time.time()
-                    t = round(t2 - t1)
-                    print cmd
-                    print "%s Cost Time %s" % (db_name, t)
-
-                    fo.write("%s : %d seconds\n" % (db_name, t))
-
-            print "Total Cost Time %s" % (time.time() - t1)
+            op_dump(start, end)
 
         elif ipt == '2':  # load
-            print 'Loading dbs from local dirs ..'
-            fo = open(load_log, "w")
             start = raw_input("Db index from:")
             end = raw_input("Db index to:")
-            t1 = time.time()
-            if start == end:
-                db_name = 'curato' + start
-                cmd = loader + " -h '" + host + "' -u '" + user + "' -p '" + pwd + "' -B " + db_name + " -d " + dump_dir + db_name + "/"
-                backup = os.system(cmd)
-            else:
-                for i in range(int(start), int(end)):
-                    db_name = 'curato' + str(i)
-                    cmd = loader + " -h '" + host + "' -u '" + user + "' -p '" + pwd + "' -B " + db_name + " -d " + dump_dir + db_name + "/"
-                    backup = os.system(cmd)
-                    t2 = time.time()
-                    t = round(t2 - t1)
-                    print cmd
-                    print "%s Cost Time %s" % (db_name, t)
-                    fo.write("%s : %d seconds\n" % (db_name, t))
-
-            print "Total Cost Time %s" % (time.time() - t1)
+            op_load(start, end)
 
         else:
             print 'Unknown command.'
@@ -677,22 +815,14 @@ if __name__ == '__main__':
         if ipt == '1':  # update generate
             start = raw_input("Db index from:")
             end = raw_input("Db index to:")
-            print 'Generating update ..'
 
-            dump(update_file, start, end)
-
-            print 'Generating update done.'
+            op_update_dump(start, end)
 
         elif ipt == '2':  # update load
-            print 'Loading update ..'
-            cmd = "mysql -h'" + host + "' -u'" + user + "' -p'" + pwd + "' -f mysql < " + update_file
-            t1 = time.time()
-            os.popen(cmd)
-            t2 = time.time()
-            t = t2 - t1
-            print "source from dump cost %s " % t
+            op_update_load()
         else:
             print 'Unknown command.'
+
     elif ipt == '4':  # auth
         lv2 = '''
         1) auth.sql generate ...
@@ -703,21 +833,10 @@ if __name__ == '__main__':
         if ipt == '1':  # auth generate
             start = raw_input("Db index from:")
             end = raw_input("Db index to:")
-            print 'Generating auth ..'
-            f = open(auth_file, 'w')
-            t1 = time.time()
-            f.write(getAuthSql(start, end))
-            f.close()
-            t2 = time.time()
-            print "Generating authSql Cost Time %s" % (t2 - t1)
+            op_auth_dump(start, end)
+
         elif ipt == '2':  # auth load
-            print 'Loading auth ..'
-            cmd = "mysql -h'" + host + "' -u'" + user + "' -p'" + pwd + "' -f mysql < " + auth_file
-            t1 = time.time()
-            os.popen(cmd)
-            t2 = time.time()
-            t = t2 - t1
-            print "source from auth cost %s " % t
+            op_auth_load()
         else:
             print 'Unknown command.'
     elif ipt == '5':  # clear
@@ -730,21 +849,10 @@ if __name__ == '__main__':
         if ipt == '1':  # clear generate
             start = raw_input("Db index from:")
             end = raw_input("Db index to:")
-            print 'Generating clear ..'
-            f = open(clear_file, 'w')
-            t1 = time.time()
-            f.write(getClearSql(start, end))
-            f.close()
-            t2 = time.time()
-            print "Generating clearSql Cost Time %s" % (t2 - t1)
-        elif ipt == '2':  # update load
-            print 'Loading clear ..'
-            cmd = "mysql -h'" + host + "' -u'" + user + "' -p'" + pwd + "' -f mysql < " + clear_file
-            t1 = time.time()
-            os.popen(cmd)
-            t2 = time.time()
-            t = t2 - t1
-            print "source from clear cost %s " % t
+            op_clear_dump(start, end)
+
+        elif ipt == '2':  # clear load
+            op_clear_load()
         else:
             print 'Unknown command.'
     elif ipt == '6':  # schema
@@ -755,123 +863,13 @@ if __name__ == '__main__':
     elif ipt == '7':  # extra
         start = raw_input("Db index from:")
         end = raw_input("Db index to:")
-        print 'Generating extra ..'
-        f = open(extra_file, 'w')
-        t1 = time.time()
-        f.write(getExtraSql(start, end))
-        f.close()
-        t2 = time.time()
-        print "Generating extraSql Cost Time %s" % (t2 - t1)
 
-        print 'Loading extra ..'
-        cmd = "mysql -h'" + host + "' -u'" + user + "' -p'" + pwd + "' -f mysql < " + extra_file
-        t1 = time.time()
-        os.popen(cmd)
-        t2 = time.time()
-        t = t2 - t1
-        print "source from extra cost %s " % t
+        op_extra(start, end)
+
+
     else:
         print 'Unknown command.'
 
-    os._exit(1)
-    #
-    # host = config['MYSQL_HOST']
-    # user = config['MYSQL_USER']
-    # pwd = config['MYSQL_PWD']
-    #
-    # # dbIndex = raw_input('Input database index:')
-    #
-    # # if dbIndex == 0:
-    # dbIndex = None
-    # start = '0'
-    # end = '0'
-    # t = raw_input('Input type:')
-    # if t == '1':
-    #     dbIndex = raw_input('Input db index:')
-    # else:
-    #     start = raw_input('Input database index start:')
-    #     end = raw_input('Input database index end:')
-    #
-    # # dumper: 1 hour
-    # # loader: 1 hour
-    # # generate: 1 hour
-    # # source: 1 hour
-    # # auth: dump 63, load 104
-    #
-    #
-    # # 21-30 db testing: generate 74, source 94
-    # # 31-40 db testing: generate 132, source 87
-    # # 41-60 db testing: generate 231, source 189
-    # # 61-69 db testing: generate 82, source 75
-    # # 70 db testing: generate 75, source 59
-    # # 71-79 db testing: generate 283, source 286
-    #
-    #
-    #
-    # # 1.dump modify and create sqls:
-    # dumpall = 0
-    # loadall = 0
-    # dumpauth = 0
-    # loadauth = 0
-    # dumpclear = 1
-    # loadclear = 0
-    #
-    # # 1340s
-    # if dumpall:
-    #     dir = "/home/phper/deploy-test/generator/sqls/"
-    #     # dir = "/home/lex/deploy-test/generator/sqls/"
-    #     # f = "/home/lex/220.sql"
-    #     t1 = time.time()
-    #     # dump2(dir, start, end, dbIndex)
-    #     t2 = time.time()
-    #     t = t2 - t1
-    #     print "Generating Cost Time %s" % t
-    #
-    # # 2.source from sqls:
-    # if loadall:
-    #     sqlPath = "/home/phper/deploy-test/generator/dump_all"
-    #     cmd = "mysql -h'" + host + "' -u'" + user + "' -p'" + pwd + "' -f mysql < " + sqlPath
-    #     t1 = time.time()
-    #     os.popen(cmd)
-    #     t2 = time.time()
-    #     t = t2 - t1
-    #     print "source from dump cost %s " % t
-    #
-    # # 3.dump auth sql:
-    # authFile = '/home/phper/deploy-test/generator/auth'
-    # if dumpauth:
-    #     f = open(authFile, 'w')
-    #     t1 = time.time()
-    #     f.write(getAuthSql(dbIndex))
-    #     f.close()
-    #     t2 = time.time()
-    #     print "Generating authSql Cost Time %s" % (t2 - t1)
-    #
-    # # 4.source auth sql:
-    # if loadauth:
-    #     cmd = "mysql -h'" + host + "' -u'" + user + "' -p'" + pwd + "' -f mysql < " + authFile
-    #     t1 = time.time()
-    #     os.popen(cmd)
-    #     t2 = time.time()
-    #     t = t2 - t1
-    #     print "source from auth cost %s " % t
-    #
-    # clearFile = '/home/phper/deploy-test/generator/clear'
-    # if dumpclear:
-    #     f = open(clearFile, 'w')
-    #     t1 = time.time()
-    #     f.write(getClearSql(dbIndex))
-    #     f.close()
-    #     t2 = time.time()
-    #     print "Generating clearSql Cost Time %s" % (t2 - t1)
-    #
-    # if loadclear:
-    #     cmd = "mysql -h'" + host + "' -u'" + user + "' -p'" + pwd + "' -f mysql < " + clearFile
-    #     t1 = time.time()
-    #     os.popen(cmd)
-    #     t2 = time.time()
-    #     t = t2 - t1
-    #     print "source from clear cost %s " % t
 
         # mysql -h host -u user -p -f db_name < sql_file
         # -f导入数据时忽略错误：上一条sql语句执行错误不影响后续语句执行
