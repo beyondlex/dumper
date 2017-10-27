@@ -8,7 +8,7 @@ class Conn:
     @staticmethod
     def conn():
 
-        database = 'curato_base'
+        database = 'mysql'
         conn = pymysql.connect(config['MYSQL_HOST'], config['MYSQL_USER'], config['MYSQL_PWD'], database)
         print 'conn..'
         sql = '''

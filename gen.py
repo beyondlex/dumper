@@ -21,7 +21,6 @@ def getExtraSql(start, end):
     sqls = ''
 
     for d in dbs:
-        print d
         companyId = str(d[1])
         index = str(d[3])
         dbName = "curato" + index
@@ -50,7 +49,6 @@ def getClearSql(start, end):
     sqls = ''
 
     for d in dbs:
-        print d
         companyId = str(d[1])
         index = str(d[3])
         dbName = "curato" + index
@@ -93,7 +91,6 @@ def getCreateSql(dbName, sn):
 
     tblName = sn + "_attendance_rule"
     sql = '''
-    drop table if EXISTS `%s`;
     CREATE TABLE `%s` (
       `id` int(11) NOT NULL AUTO_INCREMENT COMMENT '主键',
       `rule_name` varchar(255) NOT NULL COMMENT '规则名称',
@@ -124,12 +121,11 @@ def getCreateSql(dbName, sn):
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COMMENT='考勤规则表';
     '''
 
-    sql = sql % (tblName, tblName)
+    sql = sql % (tblName)
     creates.append(sql)
 
     tblName = sn + "_attendance_user_rule"
     sql = '''
-    drop table if EXISTS `%s`;
     CREATE TABLE `%s` (
     `id`  int NOT NULL AUTO_INCREMENT,
     `user_id`  int NULL COMMENT '已有规则的员工id' ,
@@ -137,12 +133,11 @@ def getCreateSql(dbName, sn):
     PRIMARY KEY (`id`)
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COMMENT='规则用户配置表';
     '''
-    sql = sql % (tblName, tblName)
+    sql = sql % (tblName)
     creates.append(sql)
 
     tblName = sn + "_report_read_info"
     sql = '''
-    drop table if EXISTS `%s`;
     CREATE TABLE `%s` (
     `id`  int(11) NOT NULL ,
     `report_id`  int(11) NOT NULL COMMENT '日报ID' ,
@@ -152,13 +147,12 @@ def getCreateSql(dbName, sn):
     PRIMARY KEY (`id`)
     );
     '''
-    sql = sql % (tblName, tblName)
+    sql = sql % (tblName)
     creates.append(sql)
 
     tblName = sn + "_notice_info"
     sql = '''
-    drop TABLE if EXISTS `%s`;
-    CREATE TABLE `%s` (
+     CREATE TABLE `%s` (
     `id` int(11) NOT NULL AUTO_INCREMENT COMMENT '主键',
     `message_id` int(11) NOT NULL COMMENT '公告id',
     `accepter` int(11) NOT NULL COMMENT '收公告人id',
@@ -169,7 +163,7 @@ def getCreateSql(dbName, sn):
     PRIMARY KEY (`id`)
     ) ENGINE=InnoDB AUTO_INCREMENT=16 DEFAULT CHARSET=utf8;
     '''
-    sql = sql % (tblName, tblName)
+    sql = sql % (tblName)
     creates.append(sql)
 
     s = "use %s ;" % dbName
@@ -184,67 +178,64 @@ def getModifySql(dbName, sn):
     sn = str(sn)
     # attendance
     tblName = sn + "_attendance"
-    sql = " alter table `" + tblName + "` "
+    sql = ""
+    alter = " alter table `" + tblName + "` "
     addCols = [
-        ('rule_id', "ADD COLUMN `rule_id`  int NULL COMMENT '考勤规则id' AFTER `user_id`,"),
-        ('apply_id', "ADD COLUMN `apply_id`  varchar(200) DEFAULT NULL COMMENT '对考勤有影响的申请id集合' AFTER `cross_day`,"),
-        ('rule_work_time', "ADD COLUMN `rule_work_time`  smallint(6) NULL COMMENT '自由班工作时间' AFTER `apply_id`,"),
-        ('record_limit_time', "ADD COLUMN `record_limit_time`  time NULL COMMENT '自由班最晚打卡时间' AFTER `rule_work_time`,"),
+        ('rule_id', "ADD COLUMN `rule_id`  int NULL COMMENT '考勤规则id' AFTER `user_id`"),
+        ('apply_id', "ADD COLUMN `apply_id`  varchar(200) DEFAULT NULL COMMENT '对考勤有影响的申请id集合' AFTER `cross_day`"),
+        ('rule_work_time', "ADD COLUMN `rule_work_time`  smallint(6) NULL COMMENT '自由班工作时间' AFTER `apply_id`"),
+        ('record_limit_time', "ADD COLUMN `record_limit_time`  time NULL COMMENT '自由班最晚打卡时间' AFTER `rule_work_time`"),
         (
             's_record_time',
-            "ADD COLUMN `s_record_time`  smallint(6) NULL COMMENT '上班前有效打卡时间' AFTER `record_limit_time`,"),
-        ('late_least_time', "ADD COLUMN `late_least_time`  smallint(6) NULL COMMENT '迟到起算时间' AFTER `s_record_time`,"),
+            "ADD COLUMN `s_record_time`  smallint(6) NULL COMMENT '上班前有效打卡时间' AFTER `record_limit_time`"),
+        ('late_least_time', "ADD COLUMN `late_least_time`  smallint(6) NULL COMMENT '迟到起算时间' AFTER `s_record_time`"),
         ('late_max_time',
-         "ADD COLUMN `late_max_time`  smallint(6) NULL COMMENT '迟到上限时间（超过即旷工）' AFTER `late_least_time`,"),
-        ('leave_least_time', "ADD COLUMN `leave_least_time`  smallint(6) NULL COMMENT '早退起算时间' AFTER `late_max_time`,"),
+         "ADD COLUMN `late_max_time`  smallint(6) NULL COMMENT '迟到上限时间（超过即旷工）' AFTER `late_least_time`"),
+        ('leave_least_time', "ADD COLUMN `leave_least_time`  smallint(6) NULL COMMENT '早退起算时间' AFTER `late_max_time`"),
         ('leave_max_time',
-         "ADD COLUMN `leave_max_time`  smallint(6) NULL COMMENT '早退上限时间（超过即旷工）' AFTER `leave_least_time`,"),
-        ('ot_least_time', "ADD COLUMN `ot_least_time`  smallint(6) NULL COMMENT '加班起算时间' AFTER `leave_max_time`,"),
+         "ADD COLUMN `leave_max_time`  smallint(6) NULL COMMENT '早退上限时间（超过即旷工）' AFTER `leave_least_time`"),
+        ('ot_least_time', "ADD COLUMN `ot_least_time`  smallint(6) NULL COMMENT '加班起算时间' AFTER `leave_max_time`"),
         ('attendance_apply',
-         "ADD COLUMN `attendance_apply`  varchar(255) DEFAULT '1,2,3,4' COMMENT '关联申请' AFTER `ot_least_time`,"),
+         "ADD COLUMN `attendance_apply`  varchar(255) DEFAULT '1,2,3,4' COMMENT '关联申请' AFTER `ot_least_time`"),
         ('record_way',
-         "ADD COLUMN `record_way`  varchar(255) DEFAULT '1,2,3' COMMENT '允许打卡方式' AFTER `attendance_apply`,"),
-        ('rule_type', "ADD COLUMN `rule_type`  tinyint(4) DEFAULT 1 COMMENT '班制类型。1固定2多班3自由' AFTER `record_way`,"),
+         "ADD COLUMN `record_way`  varchar(255) DEFAULT '1,2,3' COMMENT '允许打卡方式' AFTER `attendance_apply`"),
+        ('rule_type', "ADD COLUMN `rule_type`  tinyint(4) DEFAULT 1 COMMENT '班制类型。1固定2多班3自由' AFTER `record_way`"),
     ]
     for tup in addCols:
         if not Tool.colExist(dbName, tblName, tup[0]):
-            sql += tup[1]
+            sql += alter + tup[1] + "; "
 
     modify = '''
-        MODIFY COLUMN `schedule_id`  int(11) NULL COMMENT '班次id' AFTER `rule_id`,
-        MODIFY COLUMN `type`  int(11) NULL DEFAULT 0 COMMENT '考勤类型（加班、出差）' AFTER `attendance_status`,
-        MODIFY COLUMN `work_time`  smallint(6) NULL COMMENT '应上班的分钟数' AFTER `update_time`;
-    ALTER TABLE `%s`
-        MODIFY COLUMN `cross_day`  tinyint(1) NULL DEFAULT 0 COMMENT '是否跨天' AFTER `overtime_type`;
+        %s MODIFY COLUMN `schedule_id`  int(11) NULL COMMENT '班次id' AFTER `rule_id`;
+        %s MODIFY COLUMN `type`  int(11) NULL DEFAULT 0 COMMENT '考勤类型（加班、出差）' AFTER `attendance_status`;
+        %s MODIFY COLUMN `work_time`  smallint(6) NULL COMMENT '应上班的分钟数' AFTER `update_time`;
+        %s MODIFY COLUMN `cross_day`  tinyint(1) NULL DEFAULT 0 COMMENT '是否跨天' AFTER `overtime_type`;
     '''
 
-    sql += modify
-    sql = sql % tblName
+    sql += (modify % ((alter,)*4))
 
     # schedule
     tblName = sn + "_schedule"
-    sql += " alter table `" + tblName + "` "
+    alter = " alter table `" + tblName + "` "
     addCols = [
-        ('rest', "ADD COLUMN `rest`  tinyint(1) NULL DEFAULT 1 COMMENT '是否有休息时间，1是0否' AFTER `cross_day`,"),
+        ('rest', "ADD COLUMN `rest`  tinyint(1) NULL DEFAULT 1 COMMENT '是否有休息时间，1是0否' AFTER `cross_day`"),
     ]
     for tup in addCols:
         if not Tool.colExist(dbName, tblName, tup[0]):
-            sql += tup[1]
+            sql += alter + tup[1] + '; '
 
     modify = '''
-        MODIFY COLUMN `department_id`  int(11) NULL COMMENT '部门id' AFTER `id`,
-        MODIFY COLUMN `schedule_name`  varchar(50) CHARACTER SET utf8 COLLATE utf8_general_ci NULL COMMENT '班次名称' AFTER `department_id`,
-        MODIFY COLUMN `s_rest_time`  time NULL COMMENT '午休开始时间' AFTER `e_time`,
-        MODIFY COLUMN `e_rest_time`  time NULL COMMENT '午休结束时间' AFTER `s_rest_time`,
-        MODIFY COLUMN `creator`  int(11) NULL COMMENT '创建者id' AFTER `e_rest_time`,
-        MODIFY COLUMN `create_time`  datetime NULL COMMENT '创建时间' AFTER `creator`,
-        MODIFY COLUMN `work_time`  smallint(6) NULL DEFAULT 0 COMMENT '上班时间（分钟数）' AFTER `deleted`;
-    ALTER TABLE `%s`
-        MODIFY COLUMN `cross_day`  tinyint(1) NULL DEFAULT 0 COMMENT '是否跨天' AFTER `work_time`;
+        %s MODIFY COLUMN `department_id`  int(11) NULL COMMENT '部门id' AFTER `id`;
+        %s MODIFY COLUMN `schedule_name`  varchar(50) CHARACTER SET utf8 COLLATE utf8_general_ci NULL COMMENT '班次名称' AFTER `department_id`;
+        %s MODIFY COLUMN `s_rest_time`  time NULL COMMENT '午休开始时间' AFTER `e_time`;
+        %s MODIFY COLUMN `e_rest_time`  time NULL COMMENT '午休结束时间' AFTER `s_rest_time`;
+        %s MODIFY COLUMN `creator`  int(11) NULL COMMENT '创建者id' AFTER `e_rest_time`;
+        %s MODIFY COLUMN `create_time`  datetime NULL COMMENT '创建时间' AFTER `creator`;
+        %s MODIFY COLUMN `work_time`  smallint(6) NULL DEFAULT 0 COMMENT '上班时间（分钟数）' AFTER `deleted`;
+        %s MODIFY COLUMN `cross_day`  tinyint(1) NULL DEFAULT 0 COMMENT '是否跨天' AFTER `work_time`;
     '''
 
-    sql += modify
-    sql = sql % tblName
+    sql += (modify % ((alter,) * 8))
 
     # attendance_record
     tblName = sn + "_attendance_record"
@@ -254,129 +245,119 @@ def getModifySql(dbName, sn):
 
     # report
     tblName = sn + "_report"
-    alterSql = " alter table " + tblName + " "
+    alter = " alter table " + tblName + " "
     addCols = [
-        ('report_type', "ADD COLUMN `report_type`  tinyint(4) NULL COMMENT '汇报类型。1日报2周报' AFTER `type`,"),
-        ('work_plan', "ADD COLUMN `work_plan`  varchar(5000) NULL COMMENT '下周工作计划' AFTER `content`,"),
-        ('files', "ADD COLUMN `files`  varchar(255) NULL COMMENT '图片' AFTER `work_plan`,"),
-        ('report_end_date', "ADD COLUMN `report_end_date`  date NULL COMMENT '汇报结束日期' AFTER `report_date`;"),
+        ('report_type', "ADD COLUMN `report_type`  tinyint(4) NULL COMMENT '汇报类型。1日报2周报' AFTER `type`"),
+        ('work_plan', "ADD COLUMN `work_plan`  varchar(5000) NULL COMMENT '下周工作计划' AFTER `content`"),
+        ('files', "ADD COLUMN `files`  varchar(255) NULL COMMENT '图片' AFTER `work_plan`"),
+        ('report_end_date', "ADD COLUMN `report_end_date`  date NULL COMMENT '汇报结束日期' AFTER `report_date`"),
     ]
-    reportS = 0
     for tup in addCols:
         if not Tool.colExist(dbName, tblName, tup[0]):
-            alterSql += tup[1]
-            reportS = 1
-
-    if (reportS):
-        sql += alterSql
+            sql += alter + tup[1] + "; "
 
     # user
     tblName = sn + "_user"
-    alterSql = " alter table " + tblName + " "
+    alter = " alter table " + tblName + " "
     addCols = [
         ('report_to', "ADD COLUMN `report_to`  int(11) NULL COMMENT '汇报对象' AFTER `range` ;"),
     ]
-    s = 0
     for tup in addCols:
         if not Tool.colExist(dbName, tblName, tup[0]):
-            alterSql += tup[1]
-            s = 1
-
-    if (s):
-        sql += alterSql
+            sql += alter + tup[1] + '; '
 
     # apply_config
     tblName = sn + "_apply_config"
-    sql += " alter table `" + tblName + "` "
+    alter = " alter table `" + tblName + "` "
     addCols = [
-        ('intel_approver', "ADD COLUMN `intel_approver`  varchar(255) NULL COMMENT '智能申请审批职位id' AFTER `approver`,"),
-        ('company', "ADD COLUMN `company`  tinyint(1) NULL DEFAULT 0 COMMENT '是否全公司适用' AFTER `department_id`,"),
-        ('hand_sign', "ADD COLUMN `hand_sign`  tinyint(1) NULL DEFAULT 1 COMMENT '是否启用手签' AFTER `approver`,"),
+        ('intel_approver', "ADD COLUMN `intel_approver`  varchar(255) NULL COMMENT '智能申请审批职位id' AFTER `approver`"),
+        ('company', "ADD COLUMN `company`  tinyint(1) NULL DEFAULT 0 COMMENT '是否全公司适用' AFTER `department_id`"),
+        ('hand_sign', "ADD COLUMN `hand_sign`  tinyint(1) NULL DEFAULT 1 COMMENT '是否启用手签' AFTER `approver`"),
         ('process_type',
-         "ADD COLUMN `process_type`  tinyint(1) NULL DEFAULT 1 COMMENT '审批流程类别。1员工2智能（职位）' AFTER `hand_sign`,"),
+         "ADD COLUMN `process_type`  tinyint(1) NULL DEFAULT 1 COMMENT '审批流程类别。1员工2智能（职位）' AFTER `hand_sign`"),
     ]
     for tup in addCols:
         if not Tool.colExist(dbName, tblName, tup[0]):
-            sql += tup[1]
+            sql += alter + tup[1] + '; '
 
     dropCols = [
-        ('apply_enname', "drop column `apply_enname`,"),
-        ('url', "drop column `url`,"),
+        ('apply_enname', "drop column `apply_enname`"),
+        ('url', "drop column `url`"),
     ]
 
     for tup in dropCols:
         if Tool.colExist(dbName, tblName, tup[0]):
-            sql += tup[1]
+            sql += alter + tup[1] + ';'
 
     modify = '''
-        MODIFY COLUMN `department_id`  varchar(100) NULL DEFAULT NULL COMMENT '可使用此申请的部门id' AFTER `type`,
-        MODIFY COLUMN `approver`  varchar(255) CHARACTER SET utf8 COLLATE utf8_general_ci NULL DEFAULT NULL COMMENT '申请审批人id' AFTER `apply_name`;
+        %s MODIFY COLUMN `department_id`  varchar(100) NULL DEFAULT NULL COMMENT '可使用此申请的部门id' AFTER `type`;
+        %s MODIFY COLUMN `approver`  varchar(255) CHARACTER SET utf8 COLLATE utf8_general_ci NULL DEFAULT NULL COMMENT '申请审批人id' AFTER `apply_name`;
     '''
 
-    sql += modify
+    sql += modify % ((alter,)*2)
 
     # apply
     tblName = sn + "_apply"
-    sql += " alter table `" + tblName + "` "
+    alter = " alter table `" + tblName + "` "
     addCols = [
-        ('carbon_copy', "ADD COLUMN `carbon_copy`  varchar(1000) NULL COMMENT '抄送人员id' AFTER `approver`,"),
-        ('files', "ADD COLUMN `files`  varchar(255) NULL COMMENT '附带文件（图片）' AFTER `content`,"),
-        ('day_count', "ADD COLUMN `day_count`  int NULL DEFAULT NULL COMMENT '天数' AFTER `files`,"),
-        ('hour_count', "ADD COLUMN `hour_count`  int NULL DEFAULT NULL COMMENT '小时数' AFTER `day_count`,"),
+        ('carbon_copy', "ADD COLUMN `carbon_copy`  varchar(1000) NULL COMMENT '抄送人员id' AFTER `approver`"),
+        ('files', "ADD COLUMN `files`  varchar(255) NULL COMMENT '附带文件（图片）' AFTER `content`"),
+        ('day_count', "ADD COLUMN `day_count`  int NULL DEFAULT NULL COMMENT '天数' AFTER `files`"),
+        ('hour_count', "ADD COLUMN `hour_count`  int NULL DEFAULT NULL COMMENT '小时数' AFTER `day_count`"),
         ('process_type',
-         "ADD COLUMN `process_type`  tinyint(1) NULL DEFAULT 1 COMMENT '审批流程列表。1员工审批2智能审批（职位）' AFTER `approver`,"),
+         "ADD COLUMN `process_type`  tinyint(1) NULL DEFAULT 1 COMMENT '审批流程列表。1员工审批2智能审批（职位）' AFTER `approver`"),
         ('hand_sign', "ADD COLUMN `hand_sign`  tinyint(1) NULL COMMENT '是否开启手签1是0否' AFTER `gps_location`,"),
         (
             'overtime_type',
-            "ADD COLUMN `overtime_type`  tinyint(1) NULL DEFAULT 0 COMMENT '加班类型，是否法定假日' AFTER `e_time`,"),
+            "ADD COLUMN `overtime_type`  tinyint(1) NULL DEFAULT 0 COMMENT '加班类型，是否法定假日' AFTER `e_time`"),
     ]
 
     for tup in addCols:
         if not Tool.colExist(dbName, tblName, tup[0]):
-            sql += tup[1]
+            sql += alter + tup[1] + '; '
 
     modify = '''
-        MODIFY COLUMN `content`  text CHARACTER SET utf8 COLLATE utf8_general_ci NULL COMMENT '内容' AFTER `title`;
+        %s MODIFY COLUMN `content`  text CHARACTER SET utf8 COLLATE utf8_general_ci NULL COMMENT '内容' AFTER `title`;
     '''
 
-    sql += modify
+    sql += modify % alter
 
     # apply_info
     tblName = sn + "_apply_info"
-    sql += " alter table `" + tblName + "` "
+    alter = " alter table `" + tblName + "` "
     addCols = [
-        ('role_id', "ADD COLUMN `role_id`  int NULL COMMENT '职位id。智能审批流程时用' AFTER `accepter`,"),
-        ('remind_time', "ADD COLUMN `remind_time`  datetime NULL COMMENT '上一次催办时间' AFTER `read`,"),
+        ('role_id', "ADD COLUMN `role_id`  int NULL COMMENT '职位id。智能审批流程时用' AFTER `accepter`"),
+        ('remind_time', "ADD COLUMN `remind_time`  datetime NULL COMMENT '上一次催办时间' AFTER `read`"),
     ]
     for tup in addCols:
         if not Tool.colExist(dbName, tblName, tup[0]):
-            sql += tup[1]
+            sql += alter + tup[1] + '; '
 
     modify = '''
-        MODIFY COLUMN `accepter`  int(11) NULL COMMENT '申请接收人id（审批人及自己）' AFTER `apply_id`;
+        %s MODIFY COLUMN `accepter`  int(11) NULL COMMENT '申请接收人id（审批人及自己）' AFTER `apply_id`;
     '''
 
-    sql += modify
+    sql += modify % alter
 
     # notice
     tblName = sn + "_notice"
-    sql += " alter table `" + tblName + "` "
+    alter = " alter table `" + tblName + "` "
     addCols = [
-        ('send_all', "ADD COLUMN `send_all`  tinyint(4) NULL COMMENT '是否全公司发送：0，否；1，是；' AFTER `status`,"),
-        ('department_id', "ADD COLUMN `department_id`  varchar(1000) NULL COMMENT '公司接收部门ID集合，以|区分' AFTER `send_all`,"),
-        ('user_id', "ADD COLUMN `user_id`  varchar(1000) NULL COMMENT '公司接收用户ID集合，以|区分' AFTER `department_id`,"),
-        ('attachments', "ADD COLUMN `attachments`  varchar(255) NULL COMMENT '公告的附件或图片集合，以；；区分' AFTER `user_id`,"),
+        ('send_all', "ADD COLUMN `send_all`  tinyint(4) NULL COMMENT '是否全公司发送：0，否；1，是；' AFTER `status`"),
+        ('department_id', "ADD COLUMN `department_id`  varchar(1000) NULL COMMENT '公司接收部门ID集合，以|区分' AFTER `send_all`"),
+        ('user_id', "ADD COLUMN `user_id`  varchar(1000) NULL COMMENT '公司接收用户ID集合，以|区分' AFTER `department_id`"),
+        ('attachments', "ADD COLUMN `attachments`  varchar(255) NULL COMMENT '公告的附件或图片集合，以；；区分' AFTER `user_id`"),
     ]
     for tup in addCols:
         if not Tool.colExist(dbName, tblName, tup[0]):
-            sql += tup[1]
+            sql += alter + tup[1] + '; '
 
     modify = '''
-        MODIFY COLUMN `content`  varchar(1000) CHARACTER SET utf8 COLLATE utf8_general_ci NOT NULL COMMENT '公告内容' AFTER `title`,
-        MODIFY COLUMN `e_date`  date NULL COMMENT '失效时间' AFTER `s_date`;
+        %s MODIFY COLUMN `content`  varchar(1000) CHARACTER SET utf8 COLLATE utf8_general_ci NOT NULL COMMENT '公告内容' AFTER `title`;
+        %s MODIFY COLUMN `e_date`  date NULL COMMENT '失效时间' AFTER `s_date`;
     '''
 
-    sql += modify
+    sql += modify % ((alter,)*2)
 
     # display
     tblName = sn + "_display"
@@ -510,7 +491,7 @@ def isIn(list1, list2):
 
 def op_update_dump(start=None, end=None):
     print 'Generating update ..'
-    t1 = time.time()
+    update_dump_start = time.time()
     db = connection
     cursor = db.cursor()
     # cursor.execute("select * from t_database where dbname < 3 ")
@@ -566,10 +547,10 @@ def op_update_dump(start=None, end=None):
     fo.write(sqls)
     fo.close()
 
-    t2 = time.time()
-    print "Generating Cost Time %s" % (t2 - t1)
+    update_dump_end = time.time()
+    print "Generating Cost Time %s" % (update_dump_end - update_dump_start)
 
-    print 'Generating update done.'
+    print 'Generating update done. file: %s' % update_file
     return 1
 
 
@@ -590,12 +571,16 @@ def op_dump(s, e):
     if s == e:
         db_name = 'curato' + s
         cmd = dumper + " -h " + host_from + " -u " + user_from + " -p '" + pwd_from + "' -B " + db_name + " -o " + dump_dir + db_name + "/"
-        backup = os.system(cmd)
+        if not just_print:
+            print 'dump start:'
+            backup = os.system(cmd)
     else:
         for i in range(int(s), int(e)):
             db_name = 'curato' + str(i)
             cmd = dumper + " -h " + host_from + " -u " + user_from + " -p '" + pwd_from + "' -B " + db_name + " -o " + dump_dir + db_name + "/"
-            backup = os.system(cmd)
+            if not just_print:
+                print 'dump start:'
+                backup = os.system(cmd)
             t2 = time.time()
             t = round(t2 - t1)
             print cmd
@@ -603,7 +588,7 @@ def op_dump(s, e):
 
             fo.write("%s : %d seconds\n" % (db_name, t))
 
-    print "Total Cost Time %s" % (time.time() - t1)
+    print "Dump Cost Time %s" % (time.time() - t1)
     return 1
 
 
@@ -614,19 +599,21 @@ def op_load(s, e):
     if s == e:
         db_name = 'curato' + s
         cmd = loader + " -h '" + host + "' -u '" + user + "' -p '" + pwd + "' -B " + db_name + " -d " + dump_dir + db_name + "/"
-        backup = os.system(cmd)
+        if not just_print:
+            backup = os.system(cmd)
     else:
         for i in range(int(s), int(e)):
             db_name = 'curato' + str(i)
             cmd = loader + " -h '" + host + "' -u '" + user + "' -p '" + pwd + "' -B " + db_name + " -d " + dump_dir + db_name + "/"
-            backup = os.system(cmd)
+            if not just_print:
+                backup = os.system(cmd)
             t2 = time.time()
             t = round(t2 - t1)
             print cmd
             print "%s Cost Time %s" % (db_name, t)
             fo.write("%s : %d seconds\n" % (db_name, t))
 
-    print "Total Cost Time %s" % (time.time() - t1)
+    print "Load Cost Time %s" % (time.time() - t1)
     return 1
 
 
@@ -634,7 +621,8 @@ def op_update_load():
     print 'Loading update ..'
     cmd = "mysql -h'" + host + "' -u'" + user + "' -p'" + pwd + "' -f mysql < " + update_file
     t1 = time.time()
-    os.popen(cmd)
+    if not just_print:
+        os.popen(cmd)
     t2 = time.time()
     t = t2 - t1
     print "source from dump cost %s " % t
@@ -645,7 +633,8 @@ def op_auth_dump(s, e):
     print 'Generating auth ..'
     f = open(auth_file, 'w')
     t1 = time.time()
-    f.write(getAuthSql(s, e))
+    if not just_print:
+        f.write(getAuthSql(s, e))
     f.close()
     t2 = time.time()
     print "Generating authSql Cost Time %s" % (t2 - t1)
@@ -656,7 +645,8 @@ def op_auth_load():
     print 'Loading auth ..'
     cmd = "mysql -h'" + host + "' -u'" + user + "' -p'" + pwd + "' -f mysql < " + auth_file
     t1 = time.time()
-    os.popen(cmd)
+    if not just_print:
+        os.popen(cmd)
     t2 = time.time()
     t = t2 - t1
     print "source from auth cost %s " % t
@@ -666,7 +656,8 @@ def op_clear_dump(s, e):
     print 'Generating clear ..'
     f = open(clear_file, 'w')
     t1 = time.time()
-    f.write(getClearSql(s, e))
+    if not just_print:
+        f.write(getClearSql(s, e))
     f.close()
     t2 = time.time()
     print "Generating clearSql Cost Time %s" % (t2 - t1)
@@ -676,17 +667,29 @@ def op_clear_load():
     print 'Loading clear ..'
     cmd = "mysql -h'" + host + "' -u'" + user + "' -p'" + pwd + "' -f mysql < " + clear_file
     t1 = time.time()
-    os.popen(cmd)
+    if not just_print:
+        os.popen(cmd)
     t2 = time.time()
     t = t2 - t1
     print "source from clear cost %s " % t
 
 
+def op_schema_load():
+    print 'Loading schema ..'
+    cmd = "mysql -h'" + host + "' -u'" + user + "' -p'" + pwd + "' -f mysql < " + schema_file
+    t1 = time.time()
+    if not just_print:
+        os.popen(cmd)
+    t2 = time.time()
+    t = t2 - t1
+    print "source from schema cost %s " % t
+
 def op_extra(s, e):
     print 'Generating extra ..'
     f = open(extra_file, 'w')
     t1 = time.time()
-    f.write(getExtraSql(s, e))
+    if not just_print:
+        f.write(getExtraSql(s, e))
     f.close()
     t2 = time.time()
     print "Generating extraSql Cost Time %s" % (t2 - t1)
@@ -694,7 +697,8 @@ def op_extra(s, e):
     print 'Loading extra ..'
     cmd = "mysql -h'" + host + "' -u'" + user + "' -p'" + pwd + "' -f mysql < " + extra_file
     t1 = time.time()
-    os.popen(cmd)
+    if not just_print:
+        os.popen(cmd)
     t2 = time.time()
     t = t2 - t1
     print "source from extra cost %s " % t
@@ -715,12 +719,25 @@ if __name__ == '__main__':
     clear_file = config['CLEAR_FILE']
     extra_file = config['EXTRA_FILE']
 
+    schema_file = config['SCHEMA_FILE']
+
     dump_dir = config['DUMP_DIR']
     dump_log = config['DUMP_LOG']
     dumper = config['DUMPER']
 
     load_log = config['LOAD_LOG']
     loader = config['LOADER']
+
+    just_print = int(config['JUST_PRINT'])
+
+    examine_paths = [dump_dir, schema_file]
+    check_result = True
+    for path in examine_paths:
+        if not os.path.exists(path):
+            check_result = False
+            print "file or dir not exist: %s" % path
+    if not check_result:
+        os._exit(1)
 
     entry = '''
     1)Manual
@@ -758,6 +775,8 @@ if __name__ == '__main__':
         op_clear_load()
         # 9.extra
         op_extra(start, end)
+        # 10.schema
+        op_schema_load()
 
         tb = time.time()
 
@@ -856,16 +875,17 @@ if __name__ == '__main__':
         else:
             print 'Unknown command.'
     elif ipt == '6':  # schema
-        lv2 = '''
-        
-        '''
-        print 'Unsupported yet.'
+        exist = os.path.exists(schema_file)
+        if not exist:
+            print 'Schema file not exist'
+            os._exit(1)
+        op_schema_load()
+
     elif ipt == '7':  # extra
         start = raw_input("Db index from:")
         end = raw_input("Db index to:")
 
         op_extra(start, end)
-
 
     else:
         print 'Unknown command.'
