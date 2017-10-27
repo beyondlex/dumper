@@ -3,6 +3,9 @@
 import os
 # rds2
 import time
+
+import sys
+
 from Tool import Tool
 from conn import connection
 from conn import config
@@ -503,12 +506,12 @@ def op_update_dump(start=None, end=None):
 
     if dbIndex:
         s = "select * from t_database where dbname = '" + dbIndex + "' "
-    elif (start and end):
+    elif start and end:
         s = "select * from t_database where dbname >= %s and dbname <= %s " % (start, end)
     else:
         all = raw_input('Dump all ? (y/N) ')
         if all != 'y':
-            os._exit(1)
+            sys.exit()
         s = "select * from t_database"
 
     cursor.execute(s)
@@ -692,6 +695,16 @@ def op_extra(s, e):
     load_to_db_from(extra_file, 'extra')
 
 
+def init_db():
+    t1 = time.time()
+    print 'Dumping curato_base ..'
+    op_dump('_base', '_base')
+    print 'Loading curato_base ..'
+    op_load('_base', '_base')
+    t2 = time.time()
+    print "Init db cost time %s" % (t2 - t1)
+
+
 if __name__ == '__main__':
 
     host = config['MYSQL_HOST']
@@ -719,14 +732,14 @@ if __name__ == '__main__':
 
     just_print = int(config['JUST_PRINT'])
 
-    examine_paths = [dump_dir, schema_file]
+    examine_paths = [dump_dir, schema_file, auth_base_file]
     check_result = True
     for path in examine_paths:
         if not os.path.exists(path):
             check_result = False
             print "file or dir not exist: %s" % path
     if not check_result:
-        os._exit(1)
+        sys.exit()
 
     entry = '''
     1)Manual
@@ -741,11 +754,17 @@ if __name__ == '__main__':
         print time.strftime("%Y-%m-%d %H:%M:%S", time.localtime())
         print 'Automatic process start ..'
 
-        start = 1
-        end = 2
+        start = raw_input('Enter DB index from (eg: 3): ')
+        end = raw_input('Enter DB index to (not include): ')
+        if not start:
+            start = 1
+        if not end:
+            end = 2
 
         ta = time.time()
 
+        # 0.init
+        init_db()
         # 1.dump
         op_dump(start, end)
         # 2.load
@@ -775,11 +794,11 @@ if __name__ == '__main__':
         print time.strftime("%Y-%m-%d %H:%M:%S", time.localtime())
         print "Total Time Cost %s seconds. " % (tb - ta)
 
-        os._exit(1)
+        sys.exit()
     else:
         print 'Unknown command.'
 
-        os._exit(1)
+        sys.exit()
 
     lv1 = '''
     1) init dbs  ...
@@ -793,7 +812,8 @@ if __name__ == '__main__':
     print lv1
     ipt = raw_input("Pick one:")
     if ipt == '1':  # init dbs
-        print 'Unsupported.'
+        init_db()
+
     elif ipt == '2':  # dump and load
         lv2 = '''
         1) dump dbs to local ...
@@ -876,14 +896,14 @@ if __name__ == '__main__':
         exist = os.path.exists(schema_file)
         if not exist:
             print 'Schema file not exist'
-            os._exit(1)
+            sys.exit()
         op_schema_load()
 
     elif ipt == '8':  # base auth
         exist = os.path.exists(auth_base_file)
         if not exist:
             print 'Base auth file not exist'
-            os._exit(1)
+            sys.exit()
         op_base_auth_load()
 
     else:
