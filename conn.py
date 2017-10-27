@@ -35,7 +35,7 @@ class Conn:
         END;
         '''
         cursor = conn.cursor()
-        # cursor.execute(sql)
+        cursor.execute(sql)
         return conn
 
 
