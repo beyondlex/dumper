@@ -641,15 +641,19 @@ def op_auth_dump(s, e):
     return 1
 
 
-def op_auth_load():
-    print 'Loading auth ..'
-    cmd = "mysql -h'" + host + "' -u'" + user + "' -p'" + pwd + "' -f mysql < " + auth_file
+def load_to_db_from(f, name='file'):
+    print 'Loading %s ..' % name
+    cmd = "mysql -h'" + host + "' -u'" + user + "' -p'" + pwd + "' -f mysql < " + f
     t1 = time.time()
     if not just_print:
         os.popen(cmd)
     t2 = time.time()
     t = t2 - t1
-    print "source from auth cost %s " % t
+    print "Loaded from %s cost %s " % (name, t)
+
+
+def op_auth_load():
+    load_to_db_from(auth_file, 'auth')
 
 
 def op_clear_dump(s, e):
@@ -664,25 +668,16 @@ def op_clear_dump(s, e):
 
 
 def op_clear_load():
-    print 'Loading clear ..'
-    cmd = "mysql -h'" + host + "' -u'" + user + "' -p'" + pwd + "' -f mysql < " + clear_file
-    t1 = time.time()
-    if not just_print:
-        os.popen(cmd)
-    t2 = time.time()
-    t = t2 - t1
-    print "source from clear cost %s " % t
+    load_to_db_from(clear_file, 'clear')
 
 
 def op_schema_load():
-    print 'Loading schema ..'
-    cmd = "mysql -h'" + host + "' -u'" + user + "' -p'" + pwd + "' -f mysql < " + schema_file
-    t1 = time.time()
-    if not just_print:
-        os.popen(cmd)
-    t2 = time.time()
-    t = t2 - t1
-    print "source from schema cost %s " % t
+    load_to_db_from(schema_file, 'schema')
+
+
+def op_base_auth_load():
+    load_to_db_from(auth_base_file, 'base auth data')
+
 
 def op_extra(s, e):
     print 'Generating extra ..'
@@ -694,14 +689,7 @@ def op_extra(s, e):
     t2 = time.time()
     print "Generating extraSql Cost Time %s" % (t2 - t1)
 
-    print 'Loading extra ..'
-    cmd = "mysql -h'" + host + "' -u'" + user + "' -p'" + pwd + "' -f mysql < " + extra_file
-    t1 = time.time()
-    if not just_print:
-        os.popen(cmd)
-    t2 = time.time()
-    t = t2 - t1
-    print "source from extra cost %s " % t
+    load_to_db_from(extra_file, 'extra')
 
 
 if __name__ == '__main__':
@@ -720,6 +708,7 @@ if __name__ == '__main__':
     extra_file = config['EXTRA_FILE']
 
     schema_file = config['SCHEMA_FILE']
+    auth_base_file = config['BASE_AUTH_FILE']
 
     dump_dir = config['DUMP_DIR']
     dump_log = config['DUMP_LOG']
@@ -777,6 +766,8 @@ if __name__ == '__main__':
         op_extra(start, end)
         # 10.schema
         op_schema_load()
+        # 11.base auth data
+        op_base_auth_load()
 
         tb = time.time()
 
@@ -796,8 +787,8 @@ if __name__ == '__main__':
     3) update ...
     4) auth ...
     5) clear ...
-    6) schema ...
-    7) extra ...
+    6) extra ...
+    7) schema ...
     '''
     print lv1
     ipt = raw_input("Pick one:")
@@ -874,22 +865,27 @@ if __name__ == '__main__':
             op_clear_load()
         else:
             print 'Unknown command.'
-    elif ipt == '6':  # schema
+
+    elif ipt == '6':  # extra
+        start = raw_input("Db index from:")
+        end = raw_input("Db index to:")
+
+        op_extra(start, end)
+
+    elif ipt == '7':  # schema
         exist = os.path.exists(schema_file)
         if not exist:
             print 'Schema file not exist'
             os._exit(1)
         op_schema_load()
 
-    elif ipt == '7':  # extra
-        start = raw_input("Db index from:")
-        end = raw_input("Db index to:")
-
-        op_extra(start, end)
+    elif ipt == '8':  # base auth
+        exist = os.path.exists(auth_base_file)
+        if not exist:
+            print 'Base auth file not exist'
+            os._exit(1)
+        op_base_auth_load()
 
     else:
         print 'Unknown command.'
 
-
-        # mysql -h host -u user -p -f db_name < sql_file
-        # -f导入数据时忽略错误：上一条sql语句执行错误不影响后续语句执行

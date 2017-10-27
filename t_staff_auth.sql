@@ -1,25 +1,6 @@
-/*
- Navicat MySQL Data Transfer
 
- Source Server         : 192.168.1.201
- Source Server Type    : MySQL
- Source Server Version : 50720
- Source Host           : 192.168.1.201:3306
- Source Schema         : curato_base
+use curato_base;
 
- Target Server Type    : MySQL
- Target Server Version : 50720
- File Encoding         : 65001
-
- Date: 24/10/2017 17:35:34
-*/
-
-SET NAMES utf8mb4;
-SET FOREIGN_KEY_CHECKS = 0;
-
--- ----------------------------
--- Table structure for t_staff_auth
--- ----------------------------
 DROP TABLE IF EXISTS `t_staff_auth`;
 CREATE TABLE `t_staff_auth`  (
   `id` int(4) UNSIGNED NOT NULL AUTO_INCREMENT,
@@ -63,4 +44,3 @@ INSERT INTO `t_staff_auth` VALUES (26, 21, 1, '浏览部门员工', 'staff_scope
 INSERT INTO `t_staff_auth` VALUES (27, 21, 1, '浏览全部员工', 'staff_scope_company', 1);
 INSERT INTO `t_staff_auth` VALUES (28, 4, 1, '查看他人考勤', 'attendance_stat', 1);
 
-SET FOREIGN_KEY_CHECKS = 1;
