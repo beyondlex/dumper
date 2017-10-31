@@ -696,6 +696,51 @@ def init_db():
     t2 = time.time()
     print "Init db cost time %s" % (t2 - t1)
 
+    sql = '''
+            use curato_base;
+            DROP PROCEDURE  IF EXISTS table_exist;
+            CREATE  PROCEDURE `table_exist`(IN `dbname` varchar(20),IN `tblname` varchar(50), OUT `exist` tinyint)
+            BEGIN
+                select count(*) from information_schema.`TABLES` where TABLE_SCHEMA=dbname and TABLE_NAME=tblname
+                into exist;
+            END;
+            DROP PROCEDURE  IF EXISTS column_exist;
+            CREATE PROCEDURE `column_exist`(IN `dbname` varchar(20),IN `tblname` varchar(50),IN `colname` varchar(20),OUT `exist` tinyint)
+            BEGIN
+                select count(*) from information_schema.`COLUMNS`
+                where TABLE_SCHEMA = dbname
+                and TABLE_NAME = tblname
+                and COLUMN_NAME = colname
+                into exist;
+            END;
+            DROP PROCEDURE  IF EXISTS db_exist;
+            CREATE PROCEDURE `db_exist`(IN `dbname` varchar(20), OUT `exist` tinyint)
+            BEGIN
+                select count(*) from information_schema.SCHEMATA where SCHEMA_NAME=dbname
+                into exist;
+            END;
+            '''
+    cursor = connection.cursor()
+    print 'Create procedures to curato_base..'
+    cursor.execute(sql)
+
+
+def drop_db(start, end):
+    t1 = time.time()
+    print 'Drop db ..'
+    db_names = []
+    for i in range(int(start), int(end)):
+        db_names.append("curato"+str(i))
+    db_names.append('curatotest')
+    db_names.append('curato_base')
+    for item in db_names:
+        print 'Droping db %s ..' % item
+        cmd = "mysql -h'" + host + "' -u'" + user + "' -p'" + pwd + "' -e 'DROP DATABASE if exists %s' " % item
+        if not just_print:
+            os.popen(cmd)
+    t2 = time.time()
+    print "Drop dbs cost time %s" % (t2 - t1)
+
 
 if __name__ == '__main__':
 
@@ -793,7 +838,8 @@ if __name__ == '__main__':
         sys.exit()
 
     lv1 = '''
-    1) init dbs  ...
+    0) drop database
+    1) init dbs (dump and load cuarto_base and create procedures) ...
     2) dump and load ...
     3) update ...
     4) auth ...
@@ -803,7 +849,11 @@ if __name__ == '__main__':
     '''
     print lv1
     ipt = raw_input("Pick one:")
-    if ipt == '1':  # init dbs
+    if ipt == "0":
+        start = raw_input("Db index from:")
+        end = raw_input("Db index to:")
+        drop_db(start, end)
+    elif ipt == '1':  # init dbs
         init_db()
 
     elif ipt == '2':  # dump and load
