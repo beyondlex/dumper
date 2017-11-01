@@ -720,6 +720,7 @@ def init_db():
                 into exist;
             END;
             '''
+    sql += ' update t_database set `host`="%s", `username`="%s"; ' % (config['MYSQL_HOST'], config['MYSQL_USER'])
     cursor = connection.cursor()
     print 'Create procedures to curato_base..'
     cursor.execute(sql)
