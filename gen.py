@@ -263,7 +263,7 @@ def getModifySql(dbName, sn):
     tblName = sn + "_user"
     alter = " alter table " + tblName + " "
     addCols = [
-        ('report_to', "ADD COLUMN `report_to`  int(11) NULL COMMENT '汇报对象' AFTER `range` ;"),
+        ('report_to', "ADD COLUMN `report_to`  int(11) NULL DEFAULT 1 COMMENT '汇报对象' AFTER `range` ;"),
     ]
     for tup in addCols:
         if not Tool.colExist(dbName, tblName, tup[0]):
