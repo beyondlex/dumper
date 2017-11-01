@@ -70,6 +70,26 @@ def getClearSql(start, end):
         '''
         sql = sql % (tblName, tblName)
 
+        # 申请，排班，考勤，公告，日报
+        # apply, apply_info; schedule, default_schedule; attendance, attendance_record; notice; report;
+        prefix = dbName + '.' + companyId + '_'
+        to_be_clear = ['apply', 'apply_info', 'schedule', 'default_schedule',
+                       'attendance', 'attendance_record', 'notice', 'report']
+        clears = []
+        for i in to_be_clear:
+            clears.append(prefix + i)
+        clears = tuple(clears)
+        sql += '''
+        DELETE FROM %s;
+        DELETE FROM %s;
+        DELETE FROM %s;
+        DELETE FROM %s;
+        DELETE FROM %s;
+        DELETE FROM %s;
+        DELETE FROM %s;
+        DELETE FROM %s;
+        ''' % clears
+
         sqls += sql
 
     return sqls
@@ -655,8 +675,11 @@ def op_clear_dump(s, e):
     print 'Generating clear ..'
     f = open(clear_file, 'w')
     t1 = time.time()
+    sql = getClearSql(s, e)
     if not just_print:
-        f.write(getClearSql(s, e))
+        f.write(sql)
+    else:
+        print sql
     f.close()
     t2 = time.time()
     print "Generating clearSql Cost Time %s" % (t2 - t1)
