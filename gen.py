@@ -42,6 +42,34 @@ def getExtraSql(start, end):
     return sqls
 
 
+def getClearSysMsgSql(start, end):
+    dbIndex = None
+    if start == end:
+        dbIndex = start
+
+    dbs = getDbs(dbIndex)
+
+    sqls = ''
+
+    for d in dbs:
+        companyId = str(d[1])
+        index = str(d[3])
+        dbName = "curato" + index
+        if not Tool.dbExist(dbName):
+            continue
+        tblName = dbName + '.' + companyId + '_message'
+
+        sql = '''
+        DELETE FROM %s
+        WHERE sender = 0 ;
+        '''
+        sql = sql % tblName
+
+        sqls += sql
+
+    return sqls
+
+
 def getClearSql(start, end):
     dbIndex = None
     if start == end:
@@ -710,6 +738,19 @@ def op_extra(s, e):
     load_to_db_from(extra_file, 'extra')
 
 
+def op_clear_sys_message(s, e):
+    print 'Generating sys message clear ..'
+    f = open(extra_file, 'w')
+    t1 = time.time()
+    if not just_print:
+        f.write(getClearSysMsgSql(s, e))
+    f.close()
+    t2 = time.time()
+    print "Generating clearSql Cost Time %s" % (t2 - t1)
+
+    load_to_db_from(extra_file, 'extra')
+
+
 def init_db():
     t1 = time.time()
     print 'Dumping curato_base ..'
@@ -855,6 +896,10 @@ if __name__ == '__main__':
         print time.strftime("%Y-%m-%d %H:%M:%S", time.localtime())
         print "Total Time Cost %s seconds. " % (tb - ta)
 
+        f = open('', 'w')
+        f.write("Done in %s" % time.strftime("%Y-%m-%d %H:%M:%S", time.localtime()))
+
+
         sys.exit()
     else:
         print 'Unknown command.'
@@ -870,6 +915,8 @@ if __name__ == '__main__':
     5) clear ...
     6) extra ...
     7) schema ...
+    8) base auth table ...
+    9) clear system message ...
     '''
     print lv1
     ipt = raw_input("Pick one:")
@@ -972,6 +1019,11 @@ if __name__ == '__main__':
             sys.exit()
         op_base_auth_load()
 
+    elif ipt == '9':  # clear system message
+        start = raw_input("Db index from:")
+        end = raw_input("Db index to:")
+
+        op_clear_sys_message(start, end)
     else:
         print 'Unknown command.'
 
