@@ -42,6 +42,37 @@ def getExtraSql(start, end):
     return sqls
 
 
+def getNewSql(start, end):
+    dbIndex = None
+    if start == end:
+        dbIndex = start
+
+    dbs = getDbs(dbIndex)
+
+    sqls = ''
+
+    for d in dbs:
+        companyId = str(d[1])
+        index = str(d[3])
+        dbName = "curato" + index
+        if not Tool.dbExist(dbName):
+            continue
+        tblName = dbName + '.' + companyId + '_report_read_info'
+
+        sql = '''
+        ALTER TABLE %s
+        ADD COLUMN `company_id`  int(11) NULL DEFAULT NULL COMMENT '公司id' AFTER `id`,
+        ADD COLUMN `sort`  int(11) NULL DEFAULT 0 COMMENT '优先排序，倒序' AFTER `level_name`,
+        ADD COLUMN `is_deleted`  tinyint(1) NULL DEFAULT 1 COMMENT '是否可以删除，0-固定不可删除，1-可删除' AFTER `sort`,
+        ADD COLUMN `deleted`  tinyint(1) NULL DEFAULT 0 COMMENT '是否删除，1-已删除，0-正常使用' AFTER `is_deleted`;
+        '''
+        sql = sql % tblName
+
+        sqls += sql
+
+    return sqls
+
+
 def getClearSysMsgSql(start, end):
     dbIndex = None
     if start == end:
@@ -738,6 +769,19 @@ def op_extra(s, e):
     load_to_db_from(extra_file, 'extra')
 
 
+def op_new(s, e):
+    print 'Generating new ..'
+    f = open(extra_file, 'w')
+    t1 = time.time()
+    if not just_print:
+        f.write(getNewSql(s, e))
+    f.close()
+    t2 = time.time()
+    print "Generating newSql Cost Time %s" % (t2 - t1)
+
+    load_to_db_from(extra_file, 'new')
+
+
 def op_clear_sys_message(s, e):
     print 'Generating sys message clear ..'
     f = open(extra_file, 'w')
@@ -917,6 +961,7 @@ if __name__ == '__main__':
     7) schema ...
     8) base auth table ...
     9) clear system message ...
+    10) new..
     '''
     print lv1
     ipt = raw_input("Pick one:")
@@ -1024,6 +1069,13 @@ if __name__ == '__main__':
         end = raw_input("Db index to:")
 
         op_clear_sys_message(start, end)
+
+    elif ipt == '10':
+        start = raw_input('Db index from:')
+        end = raw_input('Db index to:')
+
+        op_new(start, end)
+
     else:
         print 'Unknown command.'
 
