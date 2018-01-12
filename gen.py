@@ -57,16 +57,22 @@ def getNewSql(start, end):
         dbName = "curato" + index
         if not Tool.dbExist(dbName):
             continue
-        tblName = dbName + '.' + companyId + '_report_read_info'
+        tblName = dbName + '.' + companyId + '_schedule'
+
+        # sql = '''
+        # INSERT INTO t_level (company_id,level_name,sort,is_deleted) values
+        # ('%s','总经理级别','1','0'),
+        # ('%s','副总经理级别','2','0'),
+        # ('%s','总监级别','3','0'),
+        # ('%s','经理级别','4','0'),
+        # ('%s','主管级别','5','0'),
+        # ('%s','员工级别','6','0');
+        # ''' % ((companyId,)*6)
 
         sql = '''
-        ALTER TABLE %s
-        ADD COLUMN `company_id`  int(11) NULL DEFAULT NULL COMMENT '公司id' AFTER `id`,
-        ADD COLUMN `sort`  int(11) NULL DEFAULT 0 COMMENT '优先排序，倒序' AFTER `level_name`,
-        ADD COLUMN `is_deleted`  tinyint(1) NULL DEFAULT 1 COMMENT '是否可以删除，0-固定不可删除，1-可删除' AFTER `sort`,
-        ADD COLUMN `deleted`  tinyint(1) NULL DEFAULT 0 COMMENT '是否删除，1-已删除，0-正常使用' AFTER `is_deleted`;
-        '''
-        sql = sql % tblName
+        ALTER TABLE %s 
+ADD COLUMN `week_day` varchar(255) NULL COMMENT '工作日，周一到周日，数字表示' AFTER `rest`;
+        ''' % tblName
 
         sqls += sql
 
@@ -152,6 +158,7 @@ def getClearSql(start, end):
         sqls += sql
 
     return sqls
+
 
 
 def getDbs(dbIndex=None):
